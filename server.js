@@ -1,71 +1,60 @@
-const http = require('http');
-const fs = require('fs');
+require('dotenv').config();
+const express = require('express');
 const path = require('path');
+const TelegramBot = require('node-telegram-bot-api');
 
-const server = http.createServer((req, res) => {
-    // Получаем путь из URL
-    let filePath = '.' + req.url;
-    if (filePath === './') {
-        filePath = './index.html';
-    }
+const app = express();
+const port = process.env.PORT || 3000;
 
-    // Определяем MIME-тип файла
-    const extname = path.extname(filePath);
-    let contentType = 'text/html';
-    switch (extname) {
-        case '.js':
-            contentType = 'text/javascript';
-            break;
-        case '.css':
-            contentType = 'text/css';
-            break;
-        case '.json':
-            contentType = 'application/json';
-            break;
-        case '.png':
-            contentType = 'image/png';
-            break;
-        case '.jpg':
-            contentType = 'image/jpg';
-            break;
-        case '.ico':
-            contentType = 'image/x-icon';
-            break;
-    }
+// Настройка бота с явным указанием настроек promises
+const token = process.env.TELEGRAM_BOT_TOKEN;
+const bot = new TelegramBot(token, { 
+    polling: true,
+    cancelable: true // Явно включаем отмену промисов
+});
 
-    // Читаем файл
-    fs.readFile(filePath, (error, content) => {
-        if (error) {
-            if(error.code == 'ENOENT') {
-                // Если файл не найден в корневой директории, 
-                // пробуем искать в папке assets для изображений
-                if (extname === '.png' || extname === '.jpg' || extname === '.ico') {
-                    const assetPath = './assets' + req.url;
-                    fs.readFile(assetPath, (err, assetContent) => {
-                        if (err) {
-                            res.writeHead(404);
-                            res.end('File not found: ' + req.url);
-                        } else {
-                            res.writeHead(200, { 'Content-Type': contentType });
-                            res.end(assetContent, 'binary');
-                        }
-                    });
-                } else {
-                    res.writeHead(404);
-                    res.end('File not found: ' + req.url);
-                }
-            } else {
-                res.writeHead(500);
-                res.end('Server Error: ' + error.code);
-            }
-        } else {
-            res.writeHead(200, { 'Content-Type': contentType });
-            res.end(content, 'binary');
+// Middleware для статических файлов
+app.use(express.static(path.join(__dirname)));
+app.use('/assets', express.static(path.join(__dirname, 'assets')));
+
+// Основной маршрут
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// Обработка команд бота
+bot.onText(/\/start/, (msg) => {
+    const chatId = msg.chat.id;
+    bot.sendMessage(chatId, 'Добро пожаловать в The Slava Survivors! Нажмите кнопку ниже, чтобы начать игру:', {
+        reply_markup: {
+            inline_keyboard: [
+                [{
+                    text: '🎮 Играть',
+                    web_app: { url: process.env.WEBAPP_URL }
+                }]
+            ]
         }
+    }).catch(error => {
+        console.error('Error sending message:', error);
     });
 });
 
-const port = 3000;
-server.listen(port, () => {
-    console.log(`Server running at http://localhost:${port}/`);
+// Обработка ошибок бота
+bot.on('error', (error) => {
+    console.error('Bot error:', error);
+});
+
+bot.on('polling_error', (error) => {
+    console.error('Polling error:', error);
+});
+
+// Запуск сервера
+app.listen(port, () => {
+    console.log(`Server is running on port ${port}`);
+});
+
+// Graceful shutdown
+process.on('SIGINT', () => {
+    bot.stopPolling();
+    process.exit(0);
 });

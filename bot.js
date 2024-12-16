@@ -1,24 +1,26 @@
 require('dotenv').config();
 const TelegramBot = require('node-telegram-bot-api');
+const express = require('express');
 
 // Токен вашего бота
 const token = process.env.TELEGRAM_BOT_TOKEN;
-const bot = new TelegramBot(token, { polling: true });
+const bot = new TelegramBot(token);
 
-// Обработка команды /start
-bot.onText(/\/start/, (msg) => {
-    const chatId = msg.chat.id;
-    bot.sendMessage(chatId, 'Добро пожаловать в игру! Используйте /play для начала.');
+// Установка вебхука
+const url = process.env.APP_URL; // URL, предоставленный Render
+bot.setWebHook(`${url}/bot${token}`);
+
+// Обработка обновлений
+const app = express();
+app.use(express.json());
+
+app.post(`/bot${token}`, (req, res) => {
+    bot.processUpdate(req.body);
+    res.sendStatus(200);
 });
 
-// Обработка команды /play
-bot.onText(/\/play/, (msg) => {
-    const chatId = msg.chat.id;
-    bot.sendMessage(chatId, 'Игра начинается! Удачи!');
-});
-
-// Обработка других сообщений
-bot.on('message', (msg) => {
-    const chatId = msg.chat.id;
-    bot.sendMessage(chatId, 'Пожалуйста, используйте команды /start или /play.');
+// Запуск сервера
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`Сервер запущен на порту ${PORT}`);
 });

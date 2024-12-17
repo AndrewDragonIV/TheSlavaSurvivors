@@ -27,8 +27,9 @@ canvas.addEventListener('touchstart', (event) => {
     isTouching = true;
     const touch = event.touches[0];
     const rect = canvas.getBoundingClientRect();
-    targetPosition.x = touch.clientX - rect.left;
-    targetPosition.y = touch.clientY - rect.top;
+    const scale = canvas.width / rect.width;
+    targetPosition.x = (touch.clientX - rect.left) * scale;
+    targetPosition.y = (touch.clientY - rect.top) * scale;
 }, { passive: false });
 
 canvas.addEventListener('touchmove', (event) => {
@@ -36,8 +37,9 @@ canvas.addEventListener('touchmove', (event) => {
     if (isTouching) {
         const touch = event.touches[0];
         const rect = canvas.getBoundingClientRect();
-        targetPosition.x = touch.clientX - rect.left;
-        targetPosition.y = touch.clientY - rect.top;
+        const scale = canvas.width / rect.width;
+        targetPosition.x = (touch.clientX - rect.left) * scale;
+        targetPosition.y = (touch.clientY - rect.top) * scale;
     }
 }, { passive: false });
 
@@ -48,16 +50,18 @@ canvas.addEventListener('touchend', () => {
 // Для тестирования на ПК
 canvas.addEventListener('mousedown', (event) => {
     const rect = canvas.getBoundingClientRect();
-    targetPosition.x = event.clientX - rect.left;
-    targetPosition.y = event.clientY - rect.top;
+    const scale = canvas.width / rect.width;
+    targetPosition.x = (event.clientX - rect.left) * scale;
+    targetPosition.y = (event.clientY - rect.top) * scale;
     isTouching = true;
 });
 
 canvas.addEventListener('mousemove', (event) => {
     if (isTouching) {
         const rect = canvas.getBoundingClientRect();
-        targetPosition.x = event.clientX - rect.left;
-        targetPosition.y = event.clientY - rect.top;
+        const scale = canvas.width / rect.width;
+        targetPosition.x = (event.clientX - rect.left) * scale;
+        targetPosition.y = (event.clientY - rect.top) * scale;
     }
 });
 
@@ -166,9 +170,24 @@ function showWeaponSelection() {
 
     return new Promise(resolve => {
         function handleWeaponSelect(event) {
+            event.preventDefault();
+            
+            // Получаем координаты клика/касания с учетом масштабирования
             const rect = canvas.getBoundingClientRect();
-            const x = event.type === 'click' ? event.clientX - rect.left : event.touches[0].clientX - rect.left;
-            const y = event.type === 'click' ? event.clientY - rect.top : event.touches[0].clientY - rect.top;
+            const scale = canvas.width / rect.width;
+            
+            let clientX, clientY;
+            if (event.type === 'touchstart') {
+                clientX = event.touches[0].clientX;
+                clientY = event.touches[0].clientY;
+            } else {
+                clientX = event.clientX;
+                clientY = event.clientY;
+            }
+            
+            // Преобразуем координаты с учетом масштаба и позиции канваса
+            const x = (clientX - rect.left) * scale;
+            const y = (clientY - rect.top) * scale;
             
             startingWeapons.forEach((weapon, index) => {
                 const weaponX = canvas.width / 4 + (index * canvas.width / 4);
@@ -185,7 +204,7 @@ function showWeaponSelection() {
         }
         
         canvas.addEventListener('click', handleWeaponSelect);
-        canvas.addEventListener('touchstart', handleWeaponSelect);
+        canvas.addEventListener('touchstart', handleWeaponSelect, { passive: false });
     });
 }
 

@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="format-detection" content="telephone=no">
     <meta name="msapplication-tap-highlight" content="no">
     <meta name="color-scheme" content="light dark">
@@ -17,23 +20,31 @@
         const tg = window.Telegram.WebApp;
         tg.expand(); // Раскрываем на весь экран
         
-        // Отключаем масштабирование страницы
+        // Добавляем класс для специфичных стилей Telegram
+        document.body.classList.add('telegram-app');
+        
+        // Отключаем масштабирование на iOS
+        document.addEventListener('gesturestart', function(e) {
+            e.preventDefault();
+        }, { passive: false });
+        
+        // Отключаем двойное нажатие для зума
+        document.addEventListener('dblclick', function(e) {
+            e.preventDefault();
+        }, { passive: false });
+        
+        // Предотвращаем скролл
         document.addEventListener('touchmove', function(e) {
-            if (e.scale !== 1) {
+            if (e.touches.length > 1) {
                 e.preventDefault();
             }
         }, { passive: false });
         
-        // Отключаем двойное нажатие для зума
-        let lastTouchEnd = 0;
-        document.addEventListener('touchend', function(e) {
-            const now = Date.now();
-            if (now - lastTouchEnd <= 300) {
-                e.preventDefault();
-            }
-            lastTouchEnd = now;
-        }, { passive: false });
-
+        // Предотвращаем контекстное меню
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+        });
+        
         // Уведомляем бота о готовности приложения
         tg.ready();
     </script>
